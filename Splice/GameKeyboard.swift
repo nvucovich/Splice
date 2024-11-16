@@ -6,7 +6,7 @@ struct GameKeyboard: View {
     private let rows = [
         ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
         ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-        ["Enter", "Z", "X", "C", "V", "B", "N", "M", "⌫"]
+        ["Z", "X", "C", "V", "B", "N", "M", "⌫"]
     ]
     
     var body: some View {
@@ -31,7 +31,7 @@ struct KeyboardButton: View {
             Text(key)
                 .font(.system(size: key.count > 1 ? 12 : 18))
                 .foregroundColor(.white)
-                .frame(minWidth: key.count > 1 ? 50 : 30)
+                .frame(minWidth: key.count > 1 ? 50 : 30, minHeight: 50)
                 .background(Color.blue.opacity(0.8))
                 .cornerRadius(8)
         }

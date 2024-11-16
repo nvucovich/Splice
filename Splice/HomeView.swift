@@ -32,7 +32,7 @@ struct HomeView: View {
                     
                     Text("1. A new word appears each day")
                     Text("2. Create valid words starting with each pair of letters")
-                    Text("3. All words must be the same length")
+                    Text("3. All words must be the same length as the daily word")
                     Text("4. Click any row to type your word")
                     Text("5. Complete all words as fast as you can!")
                 }
@@ -43,6 +43,7 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showGame) {
                 SpliceGame(sourceWord: WordManager.getWordOfTheDay())
+                    .navigationBarBackButtonHidden(true)
             }
         }
     }

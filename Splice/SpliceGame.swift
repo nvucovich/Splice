@@ -35,7 +35,7 @@ struct SpliceGame: View {
         VStack {
             // Header
             HStack {
-                Button("Exit") {
+                Button("Back") {
                     timer?.invalidate()
                     dismiss()
                 }
@@ -58,7 +58,7 @@ struct SpliceGame: View {
             }
             .padding()
             
-            Text("Source: \(sourceWord)")
+            Text(sourceWord)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(.bottom)
