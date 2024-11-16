@@ -29,9 +29,9 @@ struct KeyboardButton: View {
     var body: some View {
         Button(action: { onTap(key) }) {
             Text(key)
-                .font(.system(size: key.count > 1 ? 12 : 18))
+                .font(.system(size: key.count > 1 ? 14 : 18))
                 .foregroundColor(.white)
-                .frame(minWidth: key.count > 1 ? 50 : 30, minHeight: 50)
+                .frame(minWidth: key.count > 1 ? 50 : 30, minHeight: 60)
                 .background(Color.blue.opacity(0.8))
                 .cornerRadius(8)
         }

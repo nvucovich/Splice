@@ -15,6 +15,7 @@ struct SpliceGame: View {
     @State private var bestTime: TimeInterval?
     @State private var showInvalidWordAlert = false
     @State private var isValidating = false
+    @State private var showCursor = false
     @Environment(\.dismiss) private var dismiss
     
     init(sourceWord: String) {
@@ -35,12 +36,6 @@ struct SpliceGame: View {
         VStack {
             // Header
             HStack {
-                Button("Back") {
-                    timer?.invalidate()
-                    dismiss()
-                }
-                .foregroundColor(.blue)
-                
                 Spacer()
                 
                 VStack(alignment: .trailing) {
@@ -58,7 +53,7 @@ struct SpliceGame: View {
             }
             .padding()
             
-            Text(sourceWord)
+            Text("Source: \(sourceWord)")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(.bottom)
@@ -71,6 +66,7 @@ struct SpliceGame: View {
                         word: $wordEntries[index],
                         isActive: currentRow == index,
                         wordLength: wordLength,
+                        showCursor: showCursor && currentRow == index,
                         onTap: { currentRow = index }
                     )
                 }
@@ -94,12 +90,16 @@ struct SpliceGame: View {
             loadBestTime()
             startTime = Date()
             startTimer()
+            // Start cursor animation
+            withAnimation(.easeInOut(duration: 0.6).repeatForever()) {
+                showCursor.toggle()
+            }
         }
         .onDisappear {
             timer?.invalidate()
         }
         .alert("Splice Complete!", isPresented: $showAlert) {
-            Button("New Game") {
+            Button("Return Home") {
                 timer?.invalidate()
                 dismiss()
             }
@@ -144,7 +144,6 @@ struct SpliceGame: View {
         } else if wordEntries[currentRow].count < wordLength {
             wordEntries[currentRow] += key
             
-            // Auto-validate when word is complete
             if wordEntries[currentRow].count == wordLength {
                 Task {
                     await validateAndAdvance(currentRow)
@@ -161,7 +160,7 @@ struct SpliceGame: View {
         if !isValid {
             playErrorHaptic()
             showInvalidWordAlert = true
-            wordEntries[index] = letterPairs[index] // Reset to just the prefix
+            wordEntries[index] = letterPairs[index]
             return
         }
         
@@ -213,16 +212,25 @@ struct WordRow: View {
     @Binding var word: String
     let isActive: Bool
     let wordLength: Int
+    let showCursor: Bool
     let onTap: () -> Void
     
     var body: some View {
         HStack {
             ForEach(0..<wordLength, id: \.self) { index in
-                LetterBox(
-                    letter: letterAt(index),
-                    isPrefix: index < 2,
-                    isActive: isActive
-                )
+                ZStack {
+                    LetterBox(
+                        letter: letterAt(index),
+                        isPrefix: index < 2,
+                        isActive: isActive
+                    )
+                    
+                    if showCursor && index == word.count && index >= 2 {
+                        Rectangle()
+                            .fill(Color.blue)
+                            .frame(width: 2, height: 30)
+                    }
+                }
             }
         }
         .onTapGesture {
