@@ -99,7 +99,7 @@ struct SpliceGame: View {
             timer?.invalidate()
         }
         .alert("Splice Complete!", isPresented: $showAlert) {
-            Button("Return Home") {
+            Button("View Stats") {
                 timer?.invalidate()
                 dismiss()
             }

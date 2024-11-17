@@ -7,6 +7,7 @@
 
 import Foundation
 
+// To Do: Figure out which two letter sequnces are splicable for each length string and only choose words that are splicable
 struct WordManager {
     // Dictionary of dates and words
     private static let dailyWords: [String: String] = [
