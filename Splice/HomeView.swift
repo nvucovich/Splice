@@ -2,6 +2,12 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var showGame = false
+    @State private var showStats = false
+    @State private var hasPlayedToday = false
+    @State private var lastCompletedWords: [String] = []
+    @State private var lastCompletedTime: TimeInterval = 0
+    // Toggle this for development
+    private let DevMode = true
     
     var body: some View {
         NavigationStack {
@@ -14,16 +20,35 @@ struct HomeView: View {
                     .font(.title2)
                     .foregroundColor(.gray)
                 
-                Button(action: {
-                    showGame = true
-                }) {
-                    Text("Play Today's Challenge")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(width: 250, height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                if !hasPlayedToday || DevMode {
+                    Button(action: {
+                        showGame = true
+                        if !DevMode {
+                            hasPlayedToday = true
+                            UserDefaults.standard.set(Date(), forKey: "lastPlayedDate")
+                        }
+                    }) {
+                        Text("Play Today's Challenge")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(width: 250, height: 50)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                    }
+                } else {
+                    Button(action: {
+                        loadLastGame()
+                        showStats = true
+                    }) {
+                        Text("View Stats")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(width: 250, height: 50)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                    }
                 }
                 
                 VStack(alignment: .leading, spacing: 16) {
@@ -45,6 +70,35 @@ struct HomeView: View {
                 SpliceGame(sourceWord: WordManager.getWordOfTheDay())
                     .navigationBarBackButtonHidden(true)
             }
+            .navigationDestination(isPresented: $showStats) {
+                SpliceStatsView(
+                    completedWords: lastCompletedWords,
+                    timeCompleted: lastCompletedTime
+                )
+                .navigationBarBackButtonHidden(true)
+            }
+            .onAppear {
+                if !DevMode {
+                    checkIfPlayedToday()
+                }
+                if hasPlayedToday {
+                    loadLastGame()
+                }
+            }
         }
+    }
+    
+    private func checkIfPlayedToday() {
+        if let lastPlayed = UserDefaults.standard.object(forKey: "lastPlayedDate") as? Date {
+            let calendar = Calendar.current
+            hasPlayedToday = calendar.isDate(lastPlayed, inSameDayAs: Date())
+        }
+    }
+    
+    private func loadLastGame() {
+        if let words = UserDefaults.standard.stringArray(forKey: "lastCompletedWords") {
+            lastCompletedWords = words
+        }
+        lastCompletedTime = UserDefaults.standard.double(forKey: "lastCompletedTime")
     }
 }

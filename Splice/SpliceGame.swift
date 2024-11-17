@@ -16,6 +16,7 @@ struct SpliceGame: View {
     @State private var showInvalidWordAlert = false
     @State private var isValidating = false
     @State private var showCursor = false
+    @State private var showStatsView = false
     @Environment(\.dismiss) private var dismiss
     
     init(sourceWord: String) {
@@ -33,95 +34,89 @@ struct SpliceGame: View {
     }
     
     var body: some View {
-        VStack {
-            // Header
-            HStack {
+        NavigationStack {
+            VStack {
+                // Header
+                HStack {
+                    Spacer()
+                    
+                    VStack(alignment: .trailing) {
+                        Text(String(format: "Time: %.1f seconds", currentTime))
+                            .font(.headline)
+                            .monospacedDigit()
+                        
+                        if let best = bestTime {
+                            Text(String(format: "Best: %.1f seconds", best))
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+                .padding()
+                
+                Text("Source: \(sourceWord)")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .padding(.bottom)
+                
+                // Word entry grid
+                VStack(spacing: 12) {
+                    ForEach(0..<letterPairs.count, id: \.self) { index in
+                        WordRow(
+                            prefix: letterPairs[index],
+                            word: $wordEntries[index],
+                            isActive: currentRow == index,
+                            wordLength: wordLength,
+                            showCursor: showCursor && currentRow == index,
+                            onTap: { currentRow = index }
+                        )
+                    }
+                }
+                .padding()
+                
                 Spacer()
                 
-                VStack(alignment: .trailing) {
-                    Text(String(format: "Time: %.1f seconds", currentTime))
-                        .font(.headline)
-                        .monospacedDigit()
-                    
-                    if let best = bestTime {
-                        Text(String(format: "Best: %.1f seconds", best))
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .monospacedDigit()
-                    }
+                GameKeyboard(onKeyTap: handleKeyTap)
+                    .padding()
+            }
+            .overlay {
+                if isValidating {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.2))
                 }
             }
-            .padding()
-            
-            Text("Source: \(sourceWord)")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.bottom)
-            
-            // Word entry grid
-            VStack(spacing: 12) {
-                ForEach(0..<letterPairs.count, id: \.self) { index in
-                    WordRow(
-                        prefix: letterPairs[index],
-                        word: $wordEntries[index],
-                        isActive: currentRow == index,
-                        wordLength: wordLength,
-                        showCursor: showCursor && currentRow == index,
-                        onTap: { currentRow = index }
-                    )
+            .onAppear {
+                loadBestTime()
+                startTime = Date()
+                startTimer()
+                // Start cursor animation
+                withAnimation(.easeInOut(duration: 0.6).repeatForever()) {
+                    showCursor.toggle()
                 }
             }
-            .padding()
-            
-            Spacer()
-            
-            GameKeyboard(onKeyTap: handleKeyTap)
-                .padding()
-        }
-        .overlay {
-            if isValidating {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black.opacity(0.2))
-            }
-        }
-        .onAppear {
-            loadBestTime()
-            startTime = Date()
-            startTimer()
-            // Start cursor animation
-            withAnimation(.easeInOut(duration: 0.6).repeatForever()) {
-                showCursor.toggle()
-            }
-        }
-        .onDisappear {
-            timer?.invalidate()
-        }
-        .alert("Splice Complete!", isPresented: $showAlert) {
-            Button("View Stats") {
+            .onDisappear {
                 timer?.invalidate()
-                dismiss()
             }
-        } message: {
-            VStack {
-                Text("Time: \(String(format: "%.1f seconds", currentTime))")
-                if let best = bestTime {
-                    if currentTime < best {
-                        Text("New Best Time! 🎉")
-                            .bold()
-                    } else {
-                        Text("Best: \(String(format: "%.1f seconds", best))")
-                    }
-                } else {
-                    Text("First completion! 🎉")
+            .alert("Splice Complete!", isPresented: $showAlert) {
+                Button("View Stats") {
+                    timer?.invalidate()
+                    showStatsView = true
                 }
             }
-        }
-        .alert("Invalid Word", isPresented: $showInvalidWordAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Please enter a valid English word.")
+            .navigationDestination(isPresented: $showStatsView) {
+                SpliceStatsView(
+                    completedWords: wordEntries,
+                    timeCompleted: currentTime
+                )
+            }
+            .alert("Invalid Word", isPresented: $showInvalidWordAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Please enter a valid English word.")
+            }
         }
     }
     
@@ -172,6 +167,12 @@ struct SpliceGame: View {
             endTime = Date()
             currentTime = endTime!.timeIntervalSince(startTime!)
             updateBestTime(currentTime)
+            
+            // Save completed game data
+            UserDefaults.standard.set(wordEntries, forKey: "lastCompletedWords")
+            UserDefaults.standard.set(currentTime, forKey: "lastCompletedTime")
+            UserDefaults.standard.set(Date(), forKey: "lastPlayedDate")
+            
             timer?.invalidate()
             showAlert = true
         }
