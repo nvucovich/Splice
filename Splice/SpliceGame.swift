@@ -34,89 +34,93 @@ struct SpliceGame: View {
     }
     
     var body: some View {
-        NavigationStack {
-            VStack {
-                // Header
-                HStack {
-                    Spacer()
-                    
-                    VStack(alignment: .trailing) {
-                        Text(String(format: "Time: %.1f seconds", currentTime))
-                            .font(.headline)
-                            .monospacedDigit()
-                        
-                        if let best = bestTime {
-                            Text(String(format: "Best: %.1f seconds", best))
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                                .monospacedDigit()
-                        }
-                    }
+        VStack {
+            // Header
+            HStack {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "house.fill")
+                        .font(.title2)
                 }
-                .padding()
-                
-                Text("Source: \(sourceWord)")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .padding(.bottom)
-                
-                // Word entry grid
-                VStack(spacing: 12) {
-                    ForEach(0..<letterPairs.count, id: \.self) { index in
-                        WordRow(
-                            prefix: letterPairs[index],
-                            word: $wordEntries[index],
-                            isActive: currentRow == index,
-                            wordLength: wordLength,
-                            showCursor: showCursor && currentRow == index,
-                            onTap: { currentRow = index }
-                        )
-                    }
-                }
-                .padding()
                 
                 Spacer()
                 
-                GameKeyboard(onKeyTap: handleKeyTap)
-                    .padding()
-            }
-            .overlay {
-                if isValidating {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.2))
+                VStack(alignment: .trailing) {
+                    Text(String(format: "Time: %.1f seconds", currentTime))
+                        .font(.headline)
+                        .monospacedDigit()
+                    
+                    if let best = bestTime {
+                        Text(String(format: "Best: %.1f seconds", best))
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .monospacedDigit()
+                    }
                 }
             }
-            .onAppear {
-                loadBestTime()
-                startTime = Date()
-                startTimer()
-                // Start cursor animation
-                withAnimation(.easeInOut(duration: 0.6).repeatForever()) {
-                    showCursor.toggle()
+            .padding()
+            
+            Text("Source: \(sourceWord)")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .padding(.bottom)
+            
+            // Word entry grid
+            VStack(spacing: 12) {
+                ForEach(0..<letterPairs.count, id: \.self) { index in
+                    WordRow(
+                        prefix: letterPairs[index],
+                        word: $wordEntries[index],
+                        isActive: currentRow == index,
+                        wordLength: wordLength,
+                        showCursor: showCursor && currentRow == index,
+                        onTap: { currentRow = index }
+                    )
                 }
             }
-            .onDisappear {
+            .padding()
+            
+            Spacer()
+            
+            GameKeyboard(onKeyTap: handleKeyTap)
+                .padding()
+        }
+        .alert("Splice Complete!", isPresented: $showAlert) {
+            Button("View Stats") {
                 timer?.invalidate()
+                showStatsView = true
             }
-            .alert("Splice Complete!", isPresented: $showAlert) {
-                Button("View Stats") {
-                    timer?.invalidate()
-                    showStatsView = true
-                }
+        }
+        .navigationDestination(isPresented: $showStatsView) {
+            SpliceStatsView(
+                completedWords: wordEntries,
+                timeCompleted: currentTime
+            )
+        }
+        .alert("Invalid Word", isPresented: $showInvalidWordAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(wordEntries[currentRow] == sourceWord ?
+                "You cannot use the source word as an answer." :
+                "Please enter a valid English word.")
+        }
+        .overlay {
+            if isValidating {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.2))
             }
-            .navigationDestination(isPresented: $showStatsView) {
-                SpliceStatsView(
-                    completedWords: wordEntries,
-                    timeCompleted: currentTime
-                )
+        }
+        .onAppear {
+            loadBestTime()
+            startTime = Date()
+            startTimer()
+            Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
+                showCursor.toggle()
             }
-            .alert("Invalid Word", isPresented: $showInvalidWordAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("Please enter a valid English word.")
-            }
+        }
+        .onDisappear {
+            timer?.invalidate()
         }
     }
     
@@ -151,6 +155,14 @@ struct SpliceGame: View {
         isValidating = true
         let isValid = await WordManager.validateWord(wordEntries[index])
         isValidating = false
+        
+        // Check if word matches source word
+        if wordEntries[index] == sourceWord {
+            playErrorHaptic()
+            showInvalidWordAlert = true
+            wordEntries[index] = letterPairs[index]
+            return
+        }
         
         if !isValid {
             playErrorHaptic()
@@ -205,71 +217,5 @@ struct SpliceGame: View {
     private func playErrorHaptic() {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.error)
-    }
-}
-
-struct WordRow: View {
-    let prefix: String
-    @Binding var word: String
-    let isActive: Bool
-    let wordLength: Int
-    let showCursor: Bool
-    let onTap: () -> Void
-    
-    var body: some View {
-        HStack {
-            ForEach(0..<wordLength, id: \.self) { index in
-                ZStack {
-                    LetterBox(
-                        letter: letterAt(index),
-                        isPrefix: index < 2,
-                        isActive: isActive
-                    )
-                    
-                    if showCursor && index == word.count && index >= 2 {
-                        Rectangle()
-                            .fill(Color.blue)
-                            .frame(width: 2, height: 30)
-                    }
-                }
-            }
-        }
-        .onTapGesture {
-            onTap()
-        }
-    }
-    
-    private func letterAt(_ index: Int) -> String {
-        if index < word.count {
-            return String(word[word.index(word.startIndex, offsetBy: index)])
-        }
-        return ""
-    }
-}
-
-struct LetterBox: View {
-    let letter: String
-    let isPrefix: Bool
-    let isActive: Bool
-    
-    var body: some View {
-        Text(letter)
-            .font(.title2)
-            .fontWeight(.bold)
-            .foregroundColor(isPrefix ? .white : .primary)
-            .frame(width: 45, height: 45)
-            .background(backgroundColor)
-            .border(Color.blue.opacity(0.3), width: 2)
-            .cornerRadius(8)
-    }
-    
-    private var backgroundColor: Color {
-        if isPrefix {
-            return .blue
-        }
-        if isActive {
-            return .blue.opacity(0.1)
-        }
-        return .white
     }
 }

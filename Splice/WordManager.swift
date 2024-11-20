@@ -7,16 +7,15 @@
 
 import Foundation
 
-// To Do: Figure out which two letter sequnces are splicable for each length string and only choose words that are splicable
 struct WordManager {
     // Dictionary of dates and words
     private static let dailyWords: [String: String] = [
         "2024-11-15": "CUSTOM",
         "2024-11-16": "SPLICE",
-        "2024-11-17": "PLAYER",
-        "2024-11-18": "GOLDEN",
-        "2024-11-19": "BRIGHT",
-        "2024-11-20": "STREAM",
+        "2024-11-17": "HEROIC",
+        "2024-11-18": "",
+        "2024-11-19": "APACHE",
+        "2024-11-20": "",
         // Add more dates and words
     ]
     
@@ -42,3 +41,9 @@ struct WordManager {
         }
     }
 }
+
+/*
+ 6 Letters
+ A words: __, AB, AC, AD, AE, AF, AG, __, AI, __, __, AL, AM, AN, AO, AP, AQ, AR, AS, AT, AU, AV, AW, AX, 
+ */
+
